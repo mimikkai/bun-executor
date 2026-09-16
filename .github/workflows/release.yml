@@ -30,24 +30,22 @@ jobs:
           VERSION=$(bun -e "console.log(require('./package.json').version)")
           STAMP=$(date -u +%y%m%d%H%M)
           # Marketplace allows up to 4 numeric components, each <= 2147483647.
-          # 0.1.0.YYMMDDHH fits (8 digits). HHMM would overflow -> HH only,
-          # so intermediate builds are unique within an hour per day.
+          # Intermediate builds append a 4th numeric component (YYMMDDHH,
+          # 8 digits). Stable builds use the plain package.json version.
           BUILD_STAMP=$(date -u +%y%m%d%H)
-          echo "base=${VERSION}" >> "$GITHUB_OUTPUT"
-          # pkg_version is always numeric (what goes into the VSIX manifest).
-          echo "pkg_version=${VERSION}.${BUILD_STAMP}" >> "$GITHUB_OUTPUT"
-          # vsix filename: matches the tag — stable v0.1.0 -> 0.1.0.vsix,
-          # intermediate -> 0.1.0-main.{stamp}.vsix.
-          echo "vsix=${VERSION}-main.${STAMP}" >> "$GITHUB_OUTPUT"
-          # Tag: plain v{version} for a fresh version bump, otherwise a
-          # v{version}-main.{stamp} for intermediate builds.
-          if ! git ls-remote --tags origin "refs/tags/v${VERSION}" | grep -q "v${VERSION}"; then
-            echo "tag=v${VERSION}" >> "$GITHUB_OUTPUT"
-            echo "pkg_version=${VERSION}" >> "$GITHUB_OUTPUT"   # stable: no suffix
-            echo "vsix=${VERSION}" >> "$GITHUB_OUTPUT"          # 0.1.0.vsix
+          if git ls-remote --tags origin "refs/tags/v${VERSION}" | grep -q "v${VERSION}"; then
+            TAG="v${VERSION}-main.${STAMP}"
+            PKG_VERSION="${VERSION}.${BUILD_STAMP}"
+            VSIX_VERSION="${VERSION}-main.${STAMP}"
           else
-            echo "tag=v${VERSION}-main.${STAMP}" >> "$GITHUB_OUTPUT"
+            TAG="v${VERSION}"
+            PKG_VERSION="${VERSION}"
+            VSIX_VERSION="${VERSION}"
           fi
+          echo "tag=${TAG}"        >> "$GITHUB_OUTPUT"
+          echo "pkg_version=${PKG_VERSION}" >> "$GITHUB_OUTPUT"
+          echo "vsix=${VSIX_VERSION}"       >> "$GITHUB_OUTPUT"
+          echo "release: tag=${TAG} pkg=${PKG_VERSION} vsix=${VSIX_VERSION}"
 
       - name: Install deps & compile
         run: |
