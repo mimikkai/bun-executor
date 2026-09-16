@@ -1,0 +1,68 @@
+import * as vscode from "vscode";
+/**
+ * Base class for all language-model tools, following the
+ * vscode-extension-and-mcp-together pattern: invoke() wraps call() and
+ * converts the string result into a LanguageModelToolResult, catching errors
+ * into a JSON { isError, message } payload the model can read.
+ */
+export class Tool {
+    async invoke(options, token) {
+        try {
+            const response = await this.call(options, token);
+            return new vscode.LanguageModelToolResult([
+                new vscode.LanguageModelTextPart(response),
+            ]);
+        }
+        catch (error) {
+            const errorPayload = {
+                isError: true,
+                message: error instanceof Error ? error.message : String(error),
+            };
+            return new vscode.LanguageModelToolResult([
+                new vscode.LanguageModelTextPart(JSON.stringify(errorPayload)),
+            ]);
+        }
+    }
+    async prepareInvocation(_options, _token) {
+        return {};
+    }
+}
+// ---------------------------------------------------------------------------
+// Shared helpers (mirror extension.js logic)
+// ---------------------------------------------------------------------------
+import { execFile } from "child_process";
+import * as fs from "fs";
+import * as os from "os";
+import * as path from "path";
+export function sh(cmd, args, timeout = 5000) {
+    const { promise, resolve } = Promise.withResolvers();
+    execFile(cmd, args, { timeout, windowsHide: true }, (err, stdout) => resolve({ ok: !err, out: String(stdout || "").trim() }));
+    return promise;
+}
+/** Run a binary at an explicit path (PATH-independent). */
+export function shFile(file, args, timeout = 30000) {
+    const { promise, resolve } = Promise.withResolvers();
+    execFile(file, args, { timeout, windowsHide: true }, (err, stdout, stderr) => resolve({ ok: !err, out: String(stdout || "") + String(stderr || "") }));
+    return promise;
+}
+export function bunBinaryCandidates() {
+    const home = os.homedir();
+    return process.platform === "win32"
+        ? [path.join(home, ".bun", "bin", "bun.exe")]
+        : [path.join(home, ".bun", "bin", "bun"), "/usr/local/bin/bun", "/opt/bun/bin/bun"];
+}
+/** Locate a runnable bun binary: PATH first, then default install locations. */
+export async function findBun() {
+    const r = await sh("bun", ["--version"]);
+    if (r.ok && /^\d/.test(r.out))
+        return "bun";
+    for (const f of bunBinaryCandidates()) {
+        if (!fs.existsSync(f))
+            continue;
+        const v = await shFile(f, ["--version"], 5000);
+        if (v.ok && /^\d/.test(v.out.trim()))
+            return f;
+    }
+    return null;
+}
+//# sourceMappingURL=tool.js.map

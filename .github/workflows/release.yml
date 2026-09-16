@@ -38,6 +38,11 @@ jobs:
             echo "tag=v${VERSION}-main.${STAMP}" >> "$GITHUB_OUTPUT"
           fi
 
+      - name: Install deps & compile
+        run: |
+          bun install --no-save
+          bunx tsc -p ./
+
       - name: Package VSIX
         run: |
           VSIX_VERSION="${{ steps.ver.outputs.vsix }}"
