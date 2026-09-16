@@ -63,6 +63,7 @@ jobs:
           # package.json version; intermediate builds append a 4th numeric
           # component (YYMMDDHH) computed in the version step.
           bun -e 'const fs=require("fs");const p=JSON.parse(fs.readFileSync("package.json","utf8"));p.version=process.env.PKG_VERSION;fs.writeFileSync("package.json",JSON.stringify(p,null,2)+"\n")'
+          bunx @vscode/vsce package --no-dependencies --allow-missing-repository -o "bun-executor-${VSIX_VERSION}.vsix"
 
       - name: Release notes
         run: |
