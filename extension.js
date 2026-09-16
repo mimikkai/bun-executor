@@ -34,19 +34,43 @@ function bunInstallCommand() {
 }
 
 // The installer mutates the user PATH; the extension host won't see it until
-// the window reloads, so offer a reload right away.
+// the window reloads. Run the installer, then poll until `bun --version`
+// succeeds and show a MODAL dialog (centered) offering an immediate reload.
 function runBunInstaller() {
   const term = vscode.window.createTerminal({ name: 'Bun install' });
   term.show();
   term.sendText(bunInstallCommand(), true);
-  void vscode.window
-    .showInformationMessage(
-      'Bun installer started in the terminal. When it finishes, restart VS Code so Bun appears on PATH.',
-      'Restart now'
-    )
-    .then((pick) => {
-      if (pick === 'Restart now') void vscode.commands.executeCommand('workbench.action.reloadWindow');
-    });
+
+  // Give the installer time to download & unpack, then check every 5 s for
+  // up to 3 min. The first successful `bun --version` means it's on disk.
+  const POLL_MS = 5000;
+  const MAX_WAIT_MS = 3 * 60 * 1000;
+  const started = Date.now();
+  const timer = setInterval(async () => {
+    const info = await detectBun();
+    if (info.installed) {
+      clearInterval(timer);
+      // Modal => rendered centered over the workbench.
+      const pick = await vscode.window.showInformationMessage(
+        `Bun ${info.version} was installed successfully. Reload VS Code so Bun appears on PATH.`,
+        { modal: true },
+        'Reload Window'
+      );
+      if (pick === 'Reload Window') {
+        await vscode.commands.executeCommand('workbench.action.reloadWindow');
+      }
+    } else if (Date.now() - started > MAX_WAIT_MS) {
+      clearInterval(timer);
+      void vscode.window
+        .showInformationMessage(
+          'Bun installer may still be running. Reload VS Code when it finishes.',
+          'Reload Window'
+        )
+        .then((p) => {
+          if (p === 'Reload Window') void vscode.commands.executeCommand('workbench.action.reloadWindow');
+        });
+    }
+  }, POLL_MS);
 }
 
 // Called from the welcome button / panel button / command palette: starts the
