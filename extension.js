@@ -20,8 +20,8 @@ function sh(cmd, args, timeout = 5000) {
 async function detectBun() {
   const r = await sh('bun', ['--version']);
   if (r.ok && /^\d/.test(r.out)) {
-    const w = await sh('where bun', 3000).catch(() => ({ ok: false }));
-    const p = process.platform === 'win32' ? w.out.split(/\r?\n/)[0] : '';
+    const w = await sh('where', ['bun'], 3000);
+    const p = process.platform === 'win32' ? String(w.out || '').split(/\r?\n/)[0] : '';
     return { installed: true, version: r.out, path: p || 'bun' };
   }
   return { installed: false, version: null, path: null };
