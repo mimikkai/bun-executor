@@ -29,11 +29,20 @@ jobs:
         run: |
           VERSION=$(bun -e "console.log(require('./package.json').version)")
           STAMP=$(date -u +%y%m%d%H%M)
+          # Marketplace allows up to 4 numeric components, each <= 2147483647.
+          # 0.1.0.YYMMDDHH fits (8 digits). HHMM would overflow -> HH only,
+          # so intermediate builds are unique within an hour per day.
+          BUILD_STAMP=$(date -u +%y%m%d%H)
           echo "base=${VERSION}" >> "$GITHUB_OUTPUT"
+          # pkg_version is always numeric (what goes into the VSIX manifest).
+          echo "pkg_version=${VERSION}.${BUILD_STAMP}" >> "$GITHUB_OUTPUT"
+          # vsix filename keeps the human-readable stamp.
           echo "vsix=${VERSION}-main.${STAMP}" >> "$GITHUB_OUTPUT"
-          # Plain tag only if it doesn't already exist (i.e. fresh version bump).
+          # Tag: plain v{version} for a fresh version bump, otherwise a
+          # v{version}-main.{stamp} prerelease tag for intermediate builds.
           if ! git ls-remote --tags origin "refs/tags/v${VERSION}" | grep -q "v${VERSION}"; then
             echo "tag=v${VERSION}" >> "$GITHUB_OUTPUT"
+            echo "pkg_version=${VERSION}" >> "$GITHUB_OUTPUT"   # stable: no suffix
           else
             echo "tag=v${VERSION}-main.${STAMP}" >> "$GITHUB_OUTPUT"
           fi
@@ -45,11 +54,16 @@ jobs:
 
       - name: Package VSIX
         run: |
-          VSIX_VERSION="${{ steps.ver.outputs.vsix }}"
+          # Marketplace requires a purely numeric version (1-4 dot-separated
+          # numbers, each <= 2147483647). Stable builds use the plain
+          # package.json version; intermediate builds append a 4th numeric
+          # component (YYMMDDHH) computed in the version step.
+          VSIX_VERSION="${{ steps.ver.outputs.vsix }}"   # numeric vsix filename
+          PKG_VERSION="${{ steps.ver.outputs.pkg_version }}"
           bun -e "
             const fs=require('fs');
             const p=JSON.parse(fs.readFileSync('package.json','utf8'));
-            p.version='${VSIX_VERSION}';
+            p.version='${PKG_VERSION}';
             fs.writeFileSync('package.json', JSON.stringify(p,null,2)+'\n');
           "
           bunx @vscode/vsce package --no-dependencies --allow-missing-repository \

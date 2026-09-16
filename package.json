@@ -2,7 +2,7 @@
   "name": "bun-executor",
   "displayName": "Bun Executor",
   "description": "Installs Bun on demand, shows a live Bun monitoring panel, and exposes MCP tools to install Bun and execute JS with it.",
-  "version": "0.0.1",
+  "version": "0.1.0",
   "publisher": "mimikkai",
   "license": "MIT",
   "engines": { "vscode": "^1.110.0" },
