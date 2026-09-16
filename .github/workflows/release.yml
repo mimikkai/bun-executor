@@ -53,23 +53,16 @@ jobs:
         run: |
           bun install --no-save
           bunx tsc -p ./
-
       - name: Package VSIX
+        env:
+          PKG_VERSION: ${{ steps.ver.outputs.pkg_version }}
+          VSIX_VERSION: ${{ steps.ver.outputs.vsix }}
         run: |
           # Marketplace requires a purely numeric version (1-4 dot-separated
           # numbers, each <= 2147483647). Stable builds use the plain
           # package.json version; intermediate builds append a 4th numeric
           # component (YYMMDDHH) computed in the version step.
-          VSIX_VERSION="${{ steps.ver.outputs.vsix }}"   # numeric vsix filename
-          PKG_VERSION="${{ steps.ver.outputs.pkg_version }}"
-          bun -e "
-            const fs=require('fs');
-            const p=JSON.parse(fs.readFileSync('package.json','utf8'));
-            p.version='${PKG_VERSION}';
-            fs.writeFileSync('package.json', JSON.stringify(p,null,2)+'\n');
-          "
-          bunx @vscode/vsce package --no-dependencies --allow-missing-repository \
-            -o "bun-executor-${VSIX_VERSION}.vsix"
+          bun -e 'const fs=require("fs");const p=JSON.parse(fs.readFileSync("package.json","utf8"));p.version=process.env.PKG_VERSION;fs.writeFileSync("package.json",JSON.stringify(p,null,2)+"\n")'
 
       - name: Release notes
         run: |
