@@ -36,13 +36,15 @@ jobs:
           echo "base=${VERSION}" >> "$GITHUB_OUTPUT"
           # pkg_version is always numeric (what goes into the VSIX manifest).
           echo "pkg_version=${VERSION}.${BUILD_STAMP}" >> "$GITHUB_OUTPUT"
-          # vsix filename keeps the human-readable stamp.
+          # vsix filename: matches the tag — stable v0.1.0 -> 0.1.0.vsix,
+          # intermediate -> 0.1.0-main.{stamp}.vsix.
           echo "vsix=${VERSION}-main.${STAMP}" >> "$GITHUB_OUTPUT"
           # Tag: plain v{version} for a fresh version bump, otherwise a
-          # v{version}-main.{stamp} prerelease tag for intermediate builds.
+          # v{version}-main.{stamp} for intermediate builds.
           if ! git ls-remote --tags origin "refs/tags/v${VERSION}" | grep -q "v${VERSION}"; then
             echo "tag=v${VERSION}" >> "$GITHUB_OUTPUT"
             echo "pkg_version=${VERSION}" >> "$GITHUB_OUTPUT"   # stable: no suffix
+            echo "vsix=${VERSION}" >> "$GITHUB_OUTPUT"          # 0.1.0.vsix
           else
             echo "tag=v${VERSION}-main.${STAMP}" >> "$GITHUB_OUTPUT"
           fi
