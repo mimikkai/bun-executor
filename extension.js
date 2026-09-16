@@ -180,7 +180,6 @@ class BunMonitorProvider {
       return nodes;
     }
     nodes.push(new Node('status', `Bun ${b.version}`, b.path));
-    nodes.push(new Node('info', 'Path', b.path));
     nodes.push(new Node('info', 'Processes', `${this.procs.length} running`));
     for (const p of this.procs) {
       nodes.push(new Node('process', p.name + (p.time ? ` (${p.time})` : ''), null, p.pid));
