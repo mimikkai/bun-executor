@@ -24,13 +24,8 @@
       ]
     },
     "viewsContainers": {
-      "activitybar": [
-        { "id": "bun-explorer", "title": "Bun", "icon": "media/bun.svg" }
-      ]
-    },
-    "menus": {
-      "view/item/context": [
-        { "command": "bunExecutor.killProcess", "when": "view == bunExecutor.monitor && viewItem == bunProcess" }
+      "panel": [
+        { "id": "bun-explorer", "title": "Bun Monitor", "icon": "media/bun.svg" }
       ]
     }
   },
