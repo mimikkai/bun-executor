@@ -29,23 +29,22 @@ jobs:
         run: |
           VERSION=$(bun -e "console.log(require('./package.json').version)")
           STAMP=$(date -u +%y%m%d%H%M)
-          # Marketplace allows up to 4 numeric components, each <= 2147483647.
-          # Intermediate builds append a 4th numeric component (YYMMDDHH,
-          # 8 digits). Stable builds use the plain package.json version.
-          BUILD_STAMP=$(date -u +%y%m%d%H)
+          # vsce requires strict semver (3 numeric components) in the manifest.
+          # So the VSIX manifest ALWAYS carries the plain package.json version;
+          # intermediate builds are distinguished only by tag/vsix-filename:
+          #   stable:        v0.1.0      -> bun-executor-0.1.0.vsix
+          #   intermediate:  v0.1.0-main.{stamp} -> bun-executor-0.1.0-main.{stamp}.vsix
           if git ls-remote --tags origin "refs/tags/v${VERSION}" | grep -q "v${VERSION}"; then
             TAG="v${VERSION}-main.${STAMP}"
-            PKG_VERSION="${VERSION}.${BUILD_STAMP}"
             VSIX_VERSION="${VERSION}-main.${STAMP}"
           else
             TAG="v${VERSION}"
-            PKG_VERSION="${VERSION}"
             VSIX_VERSION="${VERSION}"
           fi
-          echo "tag=${TAG}"        >> "$GITHUB_OUTPUT"
-          echo "pkg_version=${PKG_VERSION}" >> "$GITHUB_OUTPUT"
-          echo "vsix=${VSIX_VERSION}"       >> "$GITHUB_OUTPUT"
-          echo "release: tag=${TAG} pkg=${PKG_VERSION} vsix=${VSIX_VERSION}"
+          echo "tag=${TAG}" >> "$GITHUB_OUTPUT"
+          echo "pkg_version=${VERSION}" >> "$GITHUB_OUTPUT"
+          echo "vsix=${VSIX_VERSION}" >> "$GITHUB_OUTPUT"
+          echo "release: tag=${TAG} pkg=${VERSION} vsix=${VSIX_VERSION}"
 
       - name: Install deps & compile
         run: |
