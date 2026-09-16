@@ -49,22 +49,16 @@ function runBunInstaller() {
     });
 }
 
+// Called from the welcome button / panel button / command palette: starts the
+// official installer immediately — no extra confirmation dialog. If Bun is
+// already present, the user just gets a notification.
 async function ensureBun() {
   const info = await detectBun();
   if (info.installed) {
     void vscode.window.showInformationMessage(`Bun ${info.version} is already installed.`);
     return;
   }
-  const choice = await vscode.window.showWarningMessage(
-    '"Bun" was not found on PATH. Install it now?',
-    'Install Bun',
-    'Docs'
-  );
-  if (choice === 'Install Bun') {
-    runBunInstaller();
-  } else if (choice === 'Docs') {
-    await vscode.env.openExternal(vscode.Uri.parse(DOCS_URL));
-  }
+  runBunInstaller();
 }
 
 // ---------------------------------------------------------------------------
