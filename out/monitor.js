@@ -1,8 +1,44 @@
-import * as vscode from "vscode";
-import { execFile } from "child_process";
-import * as fs from "fs";
-import * as os from "os";
-import * as path from "path";
+"use strict";
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || (function () {
+    var ownKeys = function(o) {
+        ownKeys = Object.getOwnPropertyNames || function (o) {
+            var ar = [];
+            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
+            return ar;
+        };
+        return ownKeys(o);
+    };
+    return function (mod) {
+        if (mod && mod.__esModule) return mod;
+        var result = {};
+        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
+        __setModuleDefault(result, mod);
+        return result;
+    };
+})();
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.registerMonitor = registerMonitor;
+const vscode = __importStar(require("vscode"));
+const child_process_1 = require("child_process");
+const fs = __importStar(require("fs"));
+const os = __importStar(require("os"));
+const path = __importStar(require("path"));
 const DOCS_URL = "https://bun.sh/docs/installation";
 const REFRESH_MS = 10000;
 // ---------------------------------------------------------------------------
@@ -10,12 +46,12 @@ const REFRESH_MS = 10000;
 // ---------------------------------------------------------------------------
 function sh(cmd, args, timeout = 5000) {
     const { promise, resolve } = Promise.withResolvers();
-    execFile(cmd, args, { timeout, windowsHide: true }, (err, stdout) => resolve({ ok: !err, out: String(stdout || "").trim() }));
+    (0, child_process_1.execFile)(cmd, args, { timeout, windowsHide: true }, (err, stdout) => resolve({ ok: !err, out: String(stdout || "").trim() }));
     return promise;
 }
 function shFile(file, args, timeout = 5000) {
     const { promise, resolve } = Promise.withResolvers();
-    execFile(file, args, { timeout, windowsHide: true }, (err, stdout, stderr) => resolve({ ok: !err, out: String(stdout || "") + String(stderr || "") }));
+    (0, child_process_1.execFile)(file, args, { timeout, windowsHide: true }, (err, stdout, stderr) => resolve({ ok: !err, out: String(stdout || "") + String(stderr || "") }));
     return promise;
 }
 // Bun's default install locations, independent of PATH. The extension host
@@ -53,7 +89,7 @@ async function detectBun() {
 function listBunProcesses() {
     const { promise, resolve } = Promise.withResolvers();
     if (process.platform === "win32") {
-        execFile("tasklist", ["/FI", "IMAGENAME eq bun.exe", "/FO", "CSV", "/NH"], { timeout: 5000, windowsHide: true }, (err, stdout) => {
+        (0, child_process_1.execFile)("tasklist", ["/FI", "IMAGENAME eq bun.exe", "/FO", "CSV", "/NH"], { timeout: 5000, windowsHide: true }, (err, stdout) => {
             if (err)
                 return resolve([]);
             const out = [];
@@ -66,7 +102,7 @@ function listBunProcesses() {
         });
     }
     else {
-        execFile("ps", ["-eo", "pid=,etime=,comm="], { timeout: 5000 }, (err, stdout) => {
+        (0, child_process_1.execFile)("ps", ["-eo", "pid=,etime=,comm="], { timeout: 5000 }, (err, stdout) => {
             if (err)
                 return resolve([]);
             const out = [];
@@ -83,7 +119,7 @@ function listBunProcesses() {
 function killBunProcess(pid, refresh) {
     const cmd = process.platform === "win32" ? "taskkill" : "kill";
     const args = process.platform === "win32" ? ["/PID", String(pid), "/F"] : ["-9", String(pid)];
-    execFile(cmd, args, { timeout: 5000, windowsHide: true }, (err) => {
+    (0, child_process_1.execFile)(cmd, args, { timeout: 5000, windowsHide: true }, (err) => {
         if (err) {
             void vscode.window.showErrorMessage(`Failed to kill pid ${pid}: ${err.message}`);
         }
@@ -242,7 +278,7 @@ async function ensureBun(refresh) {
 // ---------------------------------------------------------------------------
 // Registration
 // ---------------------------------------------------------------------------
-export function registerMonitor(context) {
+function registerMonitor(context) {
     const provider = new BunMonitorProvider();
     const refresh = () => {
         void provider.refreshData().then(() => {

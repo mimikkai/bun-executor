@@ -1,5 +1,41 @@
-import * as vscode from "vscode";
-import { Tool, sh, findBun } from "./tool";
+"use strict";
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || (function () {
+    var ownKeys = function(o) {
+        ownKeys = Object.getOwnPropertyNames || function (o) {
+            var ar = [];
+            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
+            return ar;
+        };
+        return ownKeys(o);
+    };
+    return function (mod) {
+        if (mod && mod.__esModule) return mod;
+        var result = {};
+        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
+        __setModuleDefault(result, mod);
+        return result;
+    };
+})();
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.InstallBunTool = void 0;
+const vscode = __importStar(require("vscode"));
+const tool_1 = require("./tool");
 /**
  * install-bun-js-runtime-toolkit
  *
@@ -11,12 +47,12 @@ import { Tool, sh, findBun } from "./tool";
  *
  * Takes no parameters. If Bun is already installed, reports the version.
  */
-export class InstallBunTool extends Tool {
+class InstallBunTool extends tool_1.Tool {
     toolName = "install-bun-js-runtime-toolkit";
     async call(_options, _token) {
-        const existing = await findBun();
+        const existing = await (0, tool_1.findBun)();
         if (existing) {
-            const v = await sh(existing, ["--version"]);
+            const v = await (0, tool_1.sh)(existing, ["--version"]);
             return JSON.stringify({
                 success: true,
                 alreadyInstalled: true,
@@ -36,9 +72,9 @@ export class InstallBunTool extends Tool {
         const deadline = Date.now() + 5 * 60 * 1000;
         while (Date.now() < deadline && !_token.isCancellationRequested) {
             await new Promise((r) => setTimeout(r, 5000));
-            const found = await findBun();
+            const found = await (0, tool_1.findBun)();
             if (found) {
-                const v = await sh(found, ["--version"]);
+                const v = await (0, tool_1.sh)(found, ["--version"]);
                 // Modal reload prompt: the installer mutates the user PATH and the
                 // extension host only sees the new PATH after a window reload.
                 void vscode.window
@@ -63,4 +99,5 @@ export class InstallBunTool extends Tool {
         });
     }
 }
+exports.InstallBunTool = InstallBunTool;
 //# sourceMappingURL=installBunTool.js.map

@@ -1,8 +1,44 @@
-import * as vscode from "vscode";
-import * as fs from "fs";
-import * as os from "os";
-import * as path from "path";
-import { Tool, shFile, findBun } from "./tool";
+"use strict";
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || (function () {
+    var ownKeys = function(o) {
+        ownKeys = Object.getOwnPropertyNames || function (o) {
+            var ar = [];
+            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
+            return ar;
+        };
+        return ownKeys(o);
+    };
+    return function (mod) {
+        if (mod && mod.__esModule) return mod;
+        var result = {};
+        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
+        __setModuleDefault(result, mod);
+        return result;
+    };
+})();
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.BunExecuteFileTool = exports.BunExecuteCodeTool = void 0;
+const vscode = __importStar(require("vscode"));
+const fs = __importStar(require("fs"));
+const os = __importStar(require("os"));
+const path = __importStar(require("path"));
+const tool_1 = require("./tool");
 async function notInstalledResult(tool) {
     return JSON.stringify({
         success: false,
@@ -20,7 +56,7 @@ async function notInstalledResult(tool) {
  * Input: { "code": "console.log(2 + 2)" }
  * Returns: JSON { success, exitCode, stdout }. Execution timeout is 60 seconds.
  */
-export class BunExecuteCodeTool extends Tool {
+class BunExecuteCodeTool extends tool_1.Tool {
     toolName = "bun-execute-code";
     async call(options, _token) {
         const opts = (options.input || {});
@@ -28,13 +64,13 @@ export class BunExecuteCodeTool extends Tool {
         if (!code) {
             throw new Error("Parameter 'code' is required: pass the JavaScript source to execute.");
         }
-        const bun = await findBun();
+        const bun = await (0, tool_1.findBun)();
         if (!bun)
             return notInstalledResult(this.toolName);
         const tmp = path.join(os.tmpdir(), `bun-executor-${Date.now()}.js`);
         fs.writeFileSync(tmp, code, "utf8");
         try {
-            const r = await shFile(bun, [tmp], 60_000);
+            const r = await (0, tool_1.shFile)(bun, [tmp], 60_000);
             return JSON.stringify({
                 success: r.ok,
                 exitCode: r.ok ? 0 : 1,
@@ -51,6 +87,7 @@ export class BunExecuteCodeTool extends Tool {
         }
     }
 }
+exports.BunExecuteCodeTool = BunExecuteCodeTool;
 /**
  * bun-execute-file
  *
@@ -62,7 +99,7 @@ export class BunExecuteCodeTool extends Tool {
  * Relative paths are resolved against the first workspace folder.
  * Returns: JSON { success, exitCode, stdout, file }. Execution timeout is 60 seconds.
  */
-export class BunExecuteFileTool extends Tool {
+class BunExecuteFileTool extends tool_1.Tool {
     toolName = "bun-execute-file";
     async call(options, _token) {
         const opts = (options.input || {});
@@ -78,10 +115,10 @@ export class BunExecuteFileTool extends Tool {
         if (!fs.existsSync(filePath)) {
             throw new Error(`File not found: ${filePath}`);
         }
-        const bun = await findBun();
+        const bun = await (0, tool_1.findBun)();
         if (!bun)
             return notInstalledResult(this.toolName);
-        const r = await shFile(bun, [filePath], 60_000);
+        const r = await (0, tool_1.shFile)(bun, [filePath], 60_000);
         return JSON.stringify({
             success: r.ok,
             exitCode: r.ok ? 0 : 1,
@@ -90,4 +127,5 @@ export class BunExecuteFileTool extends Tool {
         });
     }
 }
+exports.BunExecuteFileTool = BunExecuteFileTool;
 //# sourceMappingURL=bunExecuteTools.js.map

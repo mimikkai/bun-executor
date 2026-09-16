@@ -2,6 +2,7 @@
   "compilerOptions": {
     "lib": ["ES2024"],
     "target": "ES2022",
+    "module": "commonjs",
     "outDir": "out",
     "rootDir": "src",
     "sourceMap": true,
