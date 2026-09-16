@@ -17,6 +17,36 @@ function sh(cmd, args, timeout = 5000) {
   });
 }
 
+const fs = require('fs');
+
+// Bun's default install locations, independent of PATH. The extension host
+// keeps the PATH from its own startup, so a freshly installed Bun is invisible
+// to `bun --version` until reload — check the binary on disk instead.
+function bunBinaryCandidates() {
+  const home = os.homedir();
+  return process.platform === 'win32'
+    ? [path.join(home, '.bun', 'bin', 'bun.exe')]
+    : [path.join(home, '.bun', 'bin', 'bun'), '/usr/local/bin/bun', '/opt/bun/bin/bun'];
+}
+
+// Version by running the binary at an explicit path (no PATH needed).
+function shFile(file, args, timeout = 5000) {
+  return new Promise((resolve) => {
+    execFile(file, args, { timeout, windowsHide: true }, (err, stdout) =>
+      resolve({ ok: !err, out: String(stdout || '').trim() })
+    );
+  });
+}
+
+// True once any candidate binary exists and runs.
+async function freshInstallPresent() {
+  for (const f of bunBinaryCandidates()) {
+    if (!fs.existsSync(f)) continue;
+    const r = await shFile(f, ['--version']);
+    if (r.ok && /^\d/.test(r.out)) return { path: f, version: r.out };
+  }
+  return null;
+}
 async function detectBun() {
   const r = await sh('bun', ['--version']);
   if (r.ok && /^\d/.test(r.out)) {
@@ -24,6 +54,9 @@ async function detectBun() {
     const p = process.platform === 'win32' ? String(w.out || '').split(/\r?\n/)[0] : '';
     return { installed: true, version: r.out, path: p || 'bun' };
   }
+  // PATH may be stale in the extension host — fall back to disk locations.
+  const fresh = await freshInstallPresent();
+  if (fresh) return { installed: true, version: fresh.version, path: fresh.path };
   return { installed: false, version: null, path: null };
 }
 
@@ -33,44 +66,59 @@ function bunInstallCommand() {
     : 'curl -fsSL https://bun.sh/install | bash';
 }
 
-// The installer mutates the user PATH; the extension host won't see it until
-// the window reloads. Run the installer, then poll until `bun --version`
-// succeeds and show a MODAL dialog (centered) offering an immediate reload.
+// Run the installer in a visible terminal and WATCH that terminal: as soon as
+// its output contains the installer's success line ("Bun X.Y.Z was installed
+// successfully!"), show a MODAL (centered) reload prompt.
 function runBunInstaller() {
+  // Pseudo-terminal so shellIntegration output events are available where the
+  // API supports it; plain terminal otherwise falls back to onDidCloseTerminal.
   const term = vscode.window.createTerminal({ name: 'Bun install' });
   term.show();
   term.sendText(bunInstallCommand(), true);
 
-  // Give the installer time to download & unpack, then check every 5 s for
-  // up to 3 min. The first successful `bun --version` means it's on disk.
-  const POLL_MS = 5000;
-  const MAX_WAIT_MS = 3 * 60 * 1000;
+  let done = false;
+  const promptReload = async () => {
+    if (done) return;
+    done = true;
+    const info = await detectBun();
+    const version = info.installed ? info.version : '';
+    const pick = await vscode.window.showInformationMessage(
+      `Bun ${version} was installed successfully. Reload VS Code so Bun appears on PATH.`.replace('  ', ' '),
+      { modal: true },
+      'Reload Window'
+    );
+    if (pick === 'Reload Window') {
+      await vscode.commands.executeCommand('workbench.action.reloadWindow');
+    }
+  };
+
+  const dataSub = vscode.window.onDidWriteTerminalData
+    ? vscode.window.onDidWriteTerminalData((e) => {
+        if (e.terminal !== term) return;
+        if (/was installed successfully/i.test(e.data)) void promptReload();
+      })
+    : null;
+
+  // Fallback/backup: when the terminal is closed (user exits installer) or the
+  // process ends, check once more — maybe it finished without the marker.
+  const closeSub = vscode.window.onDidCloseTerminal(async (t) => {
+    if (t !== term || done) return;
+    const fresh = await freshInstallPresent();
+    if (fresh) void promptReload();
+  });
+
+  // Safety net: also poll on disk in case output events are unavailable.
   const started = Date.now();
   const timer = setInterval(async () => {
-    const info = await detectBun();
-    if (info.installed) {
+    if (done) { clearInterval(timer); return; }
+    const fresh = await freshInstallPresent();
+    if (fresh) {
       clearInterval(timer);
-      // Modal => rendered centered over the workbench.
-      const pick = await vscode.window.showInformationMessage(
-        `Bun ${info.version} was installed successfully. Reload VS Code so Bun appears on PATH.`,
-        { modal: true },
-        'Reload Window'
-      );
-      if (pick === 'Reload Window') {
-        await vscode.commands.executeCommand('workbench.action.reloadWindow');
-      }
-    } else if (Date.now() - started > MAX_WAIT_MS) {
+      void promptReload();
+    } else if (Date.now() - started > 5 * 60 * 1000) {
       clearInterval(timer);
-      void vscode.window
-        .showInformationMessage(
-          'Bun installer may still be running. Reload VS Code when it finishes.',
-          'Reload Window'
-        )
-        .then((p) => {
-          if (p === 'Reload Window') void vscode.commands.executeCommand('workbench.action.reloadWindow');
-        });
     }
-  }, POLL_MS);
+  }, 5000);
 }
 
 // Called from the welcome button / panel button / command palette: starts the
