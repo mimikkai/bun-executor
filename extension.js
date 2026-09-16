@@ -175,8 +175,7 @@ class BunMonitorProvider {
     const b = this.bun;
     const nodes = [];
     if (!b.installed) {
-      nodes.push(new Node('status', 'Bun not found', null));
-      nodes.push(new Node('info', 'Run "Bun: Install Bun"', null));
+      nodes.push(new Node('status', 'Bun not found — click to install', null));
       return nodes;
     }
     nodes.push(new Node('status', `Bun ${b.version}`, b.path));
