@@ -32,7 +32,13 @@
       "view/title": [
         { "command": "bunExecutor.installBun", "when": "view == bunExecutor.monitor", "group": "navigation" }
       ]
-    }
+    },
+    "viewsWelcome": [
+      {
+        "view": "bunExecutor.monitor",
+        "contents": "Bun was not found on this system.\n[Install Bun](command:bunExecutor.installBun)\nTo learn more about Bun, [read the docs](https://bun.sh/docs)."
+      }
+    ]
   },
   "scripts": { "package": "vsce package --no-dependencies --allow-missing-repository" }
 }
