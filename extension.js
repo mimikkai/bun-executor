@@ -254,7 +254,10 @@ class BunMonitorProvider {
 }
 
 function refresh() {
-  treeProvider.refreshData().then(() => emitter.fire());
+  treeProvider.refreshData().then(() => {
+    emitter.fire();
+    updateStatusBar();
+  });
 }
 
 // Minimal emitter shared with the provider instance.
@@ -265,8 +268,35 @@ BunMonitorProvider.prototype.onDidChangeTreeData = emitter.event;
 // Activation
 // ---------------------------------------------------------------------------
 
+// ---------------------------------------------------------------------------
+// Status bar indicator: "Bun installed" (green) or "Bun required" (bright).
+// ---------------------------------------------------------------------------
+
+let statusItem;
+
+function updateStatusBar() {
+  if (!statusItem) return;
+  const b = treeProvider.bun || { installed: false };
+  if (b.installed) {
+    statusItem.text = `$(check) Bun ${b.version}`;
+    statusItem.tooltip = `Bun installed at ${b.path} — click to open the Bun Monitor`;
+    statusItem.backgroundColor = undefined;
+    statusItem.command = 'bunExecutor.refreshPanel';
+  } else {
+    statusItem.text = '$(error) Bun required';
+    statusItem.tooltip = 'Bun was not found — click to install Bun';
+    // Bright banner background so it stands out.
+    statusItem.backgroundColor = new vscode.ThemeColor('statusBarItem.errorBackground');
+    statusItem.command = 'bunExecutor.installBun';
+  }
+  statusItem.show();
+}
+
 function activate(context) {
   treeProvider = new BunMonitorProvider();
+
+  statusItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 100);
+  context.subscriptions.push(statusItem);
 
   const tree = vscode.window.createTreeView('bunExecutor.monitor', {
     treeDataProvider: treeProvider,
@@ -301,6 +331,23 @@ function activate(context) {
 
   // First paint.
   refresh();
+
+  // On startup: if Bun is not installed, notify the user with an install offer.
+  treeProvider.refreshData().then(async () => {
+    updateStatusBar();
+    if (!treeProvider.bun.installed) {
+      const choice = await vscode.window.showWarningMessage(
+        '"Bun" was not found on this system. Some features require Bun to execute code. Install it now?',
+        'Install Bun',
+        'Docs'
+      );
+      if (choice === 'Install Bun') {
+        await ensureBun();
+      } else if (choice === 'Docs') {
+        await vscode.env.openExternal(vscode.Uri.parse(DOCS_URL));
+      }
+    }
+  });
 }
 
 function deactivate() {}
