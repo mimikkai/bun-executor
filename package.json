@@ -1,0 +1,38 @@
+{
+  "name": "bun-executor",
+  "displayName": "Bun Executor",
+  "description": "Installs Bun on demand and shows a live Bun monitoring panel (version, path, running processes).",
+  "version": "0.0.1",
+  "publisher": "mimikkai",
+  "license": "MIT",
+  "engines": { "vscode": "^1.110.0" },
+  "activationEvents": ["onStartupFinished"],
+  "main": "./extension.js",
+  "repository": "github:mimikkai/bun-executor",
+  "categories": ["Other"],
+  "contributes": {
+    "commands": [
+      { "command": "bunExecutor.installBun", "title": "Bun: Install Bun", "category": "Bun" },
+      { "command": "bunExecutor.checkBun", "title": "Bun: Re-check Bun installation", "category": "Bun" },
+      { "command": "bunExecutor.refreshPanel", "title": "Bun: Refresh monitor panel", "category": "Bun" },
+      { "command": "bunExecutor.openDocs", "title": "Bun: Open installation docs", "category": "Bun" },
+      { "command": "bunExecutor.killProcess", "title": "Bun: Kill process", "category": "Bun" }
+    ],
+    "views": {
+      "bun-explorer": [
+        { "id": "bunExecutor.monitor", "name": "Bun Monitor", "icon": "media/bun.svg" }
+      ]
+    },
+    "viewsContainers": {
+      "activitybar": [
+        { "id": "bun-explorer", "title": "Bun", "icon": "media/bun.svg" }
+      ]
+    },
+    "menus": {
+      "view/item/context": [
+        { "command": "bunExecutor.killProcess", "when": "view == bunExecutor.monitor && viewItem == bunProcess" }
+      ]
+    }
+  },
+  "scripts": { "package": "vsce package --no-dependencies --allow-missing-repository" }
+}

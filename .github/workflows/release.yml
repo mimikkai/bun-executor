@@ -1,0 +1,71 @@
+# Package the extension as VSIX and publish a GitHub Release.
+#
+# Versioning: version is read from package.json. Every push to main produces a
+# release even when package.json is unchanged — a build suffix is appended:
+#   v0.0.1-main.160920261  (= -main.YYmmddHHMM, UTC)
+# When a real version bump lands (package.json version changes), the plain
+# v{version} tag is published instead.
+
+name: Release VSIX
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+
+      - name: Compute release version
+        id: ver
+        run: |
+          VERSION=$(bun -e "console.log(require('./package.json').version)")
+          STAMP=$(date -u +%y%m%d%H%M)
+          echo "base=${VERSION}" >> "$GITHUB_OUTPUT"
+          echo "vsix=${VERSION}-main.${STAMP}" >> "$GITHUB_OUTPUT"
+          # Plain tag only if it doesn't already exist (i.e. fresh version bump).
+          if ! git ls-remote --tags origin "refs/tags/v${VERSION}" | grep -q "v${VERSION}"; then
+            echo "tag=v${VERSION}" >> "$GITHUB_OUTPUT"
+          else
+            echo "tag=v${VERSION}-main.${STAMP}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Package VSIX
+        run: |
+          VSIX_VERSION="${{ steps.ver.outputs.vsix }}"
+          bun -e "
+            const fs=require('fs');
+            const p=JSON.parse(fs.readFileSync('package.json','utf8'));
+            p.version='${VSIX_VERSION}';
+            fs.writeFileSync('package.json', JSON.stringify(p,null,2)+'\n');
+          "
+          bunx @vscode/vsce package --no-dependencies --allow-missing-repository \
+            -o "bun-executor-${VSIX_VERSION}.vsix"
+
+      - name: Release notes
+        run: |
+          cat > release-notes.md <<EOF
+          ## bun-executor ${{ steps.ver.outputs.tag }}
+
+          - Source: ${{ github.server_url }}/${{ github.repository }}/tree/${{ github.sha }}
+          - Commit: ${{ github.sha }}
+          - Built: $(date -u +%Y-%m-%dT%H:%M:%SZ)
+          EOF
+
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release create "${{ steps.ver.outputs.tag }}" \
+            --target "${{ github.sha }}" \
+            --title "bun-executor ${{ steps.ver.outputs.tag }}" \
+            --notes-file release-notes.md \
+            "bun-executor-${{ steps.ver.outputs.vsix }}.vsix"
