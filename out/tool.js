@@ -39,6 +39,10 @@ exports.shFile = shFile;
 exports.bunBinaryCandidates = bunBinaryCandidates;
 exports.findBun = findBun;
 const vscode = __importStar(require("vscode"));
+const child_process_1 = require("child_process");
+const fs = __importStar(require("fs"));
+const os = __importStar(require("os"));
+const path = __importStar(require("path"));
 /**
  * Base class for all language-model tools, following the
  * vscode-extension-and-mcp-together pattern: invoke() wraps call() and
@@ -69,21 +73,17 @@ class Tool {
 }
 exports.Tool = Tool;
 // ---------------------------------------------------------------------------
-// Shared helpers (mirror extension.js logic)
+// Shared helpers
 // ---------------------------------------------------------------------------
-const child_process_1 = require("child_process");
-const fs = __importStar(require("fs"));
-const os = __importStar(require("os"));
-const path = __importStar(require("path"));
 function sh(cmd, args, timeout = 5000) {
     const { promise, resolve } = Promise.withResolvers();
     (0, child_process_1.execFile)(cmd, args, { timeout, windowsHide: true }, (err, stdout) => resolve({ ok: !err, out: String(stdout || "").trim() }));
     return promise;
 }
-/** Run a binary at an explicit path (PATH-independent). */
-function shFile(file, args, timeout = 30000) {
+/** Run a binary at an explicit path (PATH-independent), optionally in cwd. */
+function shFile(file, args, timeout = 30000, cwd) {
     const { promise, resolve } = Promise.withResolvers();
-    (0, child_process_1.execFile)(file, args, { timeout, windowsHide: true }, (err, stdout, stderr) => resolve({ ok: !err, out: String(stdout || "") + String(stderr || "") }));
+    (0, child_process_1.execFile)(file, args, { timeout, windowsHide: true, cwd }, (err, stdout, stderr) => resolve({ ok: !err, out: String(stdout || "") + String(stderr || "") }));
     return promise;
 }
 function bunBinaryCandidates() {

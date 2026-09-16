@@ -1,4 +1,8 @@
 import * as vscode from "vscode";
+import { execFile } from "child_process";
+import * as fs from "fs";
+import * as os from "os";
+import * as path from "path";
 
 /**
  * Base class for all language-model tools, following the
@@ -43,13 +47,8 @@ export abstract class Tool implements vscode.LanguageModelTool<object> {
 }
 
 // ---------------------------------------------------------------------------
-// Shared helpers (mirror extension.js logic)
+// Shared helpers
 // ---------------------------------------------------------------------------
-
-import { execFile } from "child_process";
-import * as fs from "fs";
-import * as os from "os";
-import * as path from "path";
 
 export function sh(cmd: string, args: string[], timeout = 5000): Promise<{ ok: boolean; out: string }> {
   const { promise, resolve } = Promise.withResolvers<{ ok: boolean; out: string }>();
@@ -59,10 +58,15 @@ export function sh(cmd: string, args: string[], timeout = 5000): Promise<{ ok: b
   return promise;
 }
 
-/** Run a binary at an explicit path (PATH-independent). */
-export function shFile(file: string, args: string[], timeout = 30000): Promise<{ ok: boolean; out: string }> {
+/** Run a binary at an explicit path (PATH-independent), optionally in cwd. */
+export function shFile(
+  file: string,
+  args: string[],
+  timeout = 30000,
+  cwd?: string
+): Promise<{ ok: boolean; out: string }> {
   const { promise, resolve } = Promise.withResolvers<{ ok: boolean; out: string }>();
-  execFile(file, args, { timeout, windowsHide: true }, (err, stdout, stderr) =>
+  execFile(file, args, { timeout, windowsHide: true, cwd }, (err, stdout, stderr) =>
     resolve({ ok: !err, out: String(stdout || "") + String(stderr || "") })
   );
   return promise;

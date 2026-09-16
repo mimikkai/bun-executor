@@ -2,7 +2,7 @@
   "name": "bun-executor",
   "displayName": "Bun Executor",
   "description": "Installs Bun on demand, shows a live Bun monitoring panel, and exposes MCP tools to install Bun and execute JS with it.",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "publisher": "mimikkai",
   "license": "MIT",
   "engines": { "vscode": "^1.110.0" },
@@ -49,18 +49,14 @@
         "icon": "$(cloud-download)",
         "tags": ["bun", "javascript", "runtime", "install"],
         "canBeReferencedInPrompt": true,
-        "inputSchema": {
-          "type": "object",
-          "properties": {},
-          "required": []
-        }
+        "inputSchema": { "type": "object", "properties": {}, "required": [] }
       },
       {
         "name": "bun-execute-code",
         "displayName": "Bun Execute Code",
         "toolReferenceName": "bunExecuteCode",
         "userDescription": "Executes an inline JavaScript/TypeScript snippet with the Bun runtime and returns its output.",
-        "modelDescription": "Executes a JavaScript or TypeScript snippet with the Bun runtime and returns everything the script printed. Use this tool to run quick JS calculations, evaluate generated code, test Bun behavior, or run short scripts without saving them to disk. Requires Bun to be installed — if it is missing, first call the install-bun-js-runtime-toolkit tool. Pass the source code in the 'code' parameter, e.g. { \"code\": \"console.log(2 + 2)\" }. The snippet is written to a temporary file and executed as a normal script. Execution timeout is 60 seconds. Returns JSON { success, exitCode, stdout }. For running an existing file on disk, prefer the bun-execute-file tool instead.",
+        "modelDescription": "Executes a JavaScript or TypeScript snippet with the Bun runtime and returns everything the script printed. Use this tool to run quick JS calculations, evaluate generated code, test Bun behavior, or run short scripts without saving them to disk. Requires Bun to be installed - if it is missing, first call the install-bun-js-runtime-toolkit tool. Pass the source code in the 'code' parameter, e.g. { \"code\": \"console.log(2 + 2)\" }. The snippet is written to a temporary file and executed as a normal script. Execution timeout is 60 seconds. Returns JSON { success, exitCode, stdout }. For running an existing file on disk, prefer the bun-execute-file tool instead.",
         "icon": "$(play)",
         "tags": ["bun", "javascript", "execute"],
         "canBeReferencedInPrompt": true,
@@ -80,7 +76,7 @@
         "displayName": "Bun Execute File",
         "toolReferenceName": "bunExecuteFile",
         "userDescription": "Runs an existing JS/TS file from disk with the Bun runtime and returns its output.",
-        "modelDescription": "Executes an existing JavaScript or TypeScript file on disk with the Bun runtime and returns everything the script printed. Use this tool when the user references a script file, e.g. 'run src/index.ts with bun' — instead of passing inline code. Pass the file path in the 'filePath' parameter; relative paths are resolved against the current workspace folder. The file must already exist; to run a snippet that is not saved anywhere, use the bun-execute-code tool instead. Requires Bun to be installed — if it is missing, first call the install-bun-js-runtime-toolkit tool. Execution timeout is 60 seconds. Returns JSON { success, exitCode, stdout, file }.",
+        "modelDescription": "Executes an existing JavaScript or TypeScript file on disk with the Bun runtime and returns everything the script printed. Use this tool when the user references a script file, e.g. 'run src/index.ts with bun' - instead of passing inline code. Pass the file path in the 'filePath' parameter; relative paths are resolved against the current workspace folder. The file must already exist; to run a snippet that is not saved anywhere, use the bun-execute-code tool instead. Requires Bun to be installed - if it is missing, first call the install-bun-js-runtime-toolkit tool. Execution timeout is 60 seconds. Returns JSON { success, exitCode, stdout, file }.",
         "icon": "$(file-code)",
         "tags": ["bun", "javascript", "execute"],
         "canBeReferencedInPrompt": true,
@@ -93,6 +89,30 @@
             }
           },
           "required": ["filePath"]
+        }
+      },
+      {
+        "name": "bun-install-package",
+        "displayName": "Bun Install Package",
+        "toolReferenceName": "bunInstallPackage",
+        "userDescription": "Runs 'bun install' or 'bun add <packages>' in the workspace and returns the output.",
+        "modelDescription": "Installs JavaScript/TypeScript dependencies with the Bun package manager. It is a wrapper over the bun CLI: with the 'packages' parameter it runs 'bun add <packages>' (e.g. { \"packages\": \"lodash dayjs\" }), and with 'packages' empty or omitted it runs plain 'bun install' to install everything already listed in package.json. Dependencies are installed into the workspace folder (or the folder given in 'cwd', resolved relative to the workspace). Use this tool instead of suggesting the user run 'bun install' manually. Requires Bun to be installed - if it is missing, first call the install-bun-js-runtime-toolkit tool. Timeout is 5 minutes. Returns JSON { success, exitCode, output, command, cwd } where output contains bun's stdout/stderr.",
+        "icon": "$(package)",
+        "tags": ["bun", "packages", "install"],
+        "canBeReferencedInPrompt": true,
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "packages": {
+              "type": "string",
+              "description": "Space-separated list of packages to add, e.g. 'lodash dayjs'. Leave empty or omit to run plain 'bun install' from the existing package.json."
+            },
+            "cwd": {
+              "type": "string",
+              "description": "Optional working directory for the install. Relative paths are resolved against the first workspace folder. Defaults to the workspace root."
+            }
+          },
+          "required": []
         }
       }
     ]

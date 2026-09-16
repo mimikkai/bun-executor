@@ -1,6 +1,7 @@
 import * as vscode from "vscode";
 import { InstallBunTool } from "./installBunTool";
 import { BunExecuteCodeTool, BunExecuteFileTool } from "./bunExecuteTools";
+import { BunInstallPackageTool } from "./bunInstallPackageTool";
 import { registerMonitor } from "./monitor";
 
 export function activate(context: vscode.ExtensionContext) {
@@ -13,6 +14,7 @@ export function activate(context: vscode.ExtensionContext) {
     new InstallBunTool(),
     new BunExecuteCodeTool(),
     new BunExecuteFileTool(),
+    new BunInstallPackageTool(),
   ];
   for (const tool of tools) {
     context.subscriptions.push(vscode.lm.registerTool(tool.toolName, tool));

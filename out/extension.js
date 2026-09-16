@@ -38,6 +38,7 @@ exports.deactivate = deactivate;
 const vscode = __importStar(require("vscode"));
 const installBunTool_1 = require("./installBunTool");
 const bunExecuteTools_1 = require("./bunExecuteTools");
+const bunInstallPackageTool_1 = require("./bunInstallPackageTool");
 const monitor_1 = require("./monitor");
 function activate(context) {
     // Monitor panel + status bar + commands (port of the original extension.js).
@@ -48,6 +49,7 @@ function activate(context) {
         new installBunTool_1.InstallBunTool(),
         new bunExecuteTools_1.BunExecuteCodeTool(),
         new bunExecuteTools_1.BunExecuteFileTool(),
+        new bunInstallPackageTool_1.BunInstallPackageTool(),
     ];
     for (const tool of tools) {
         context.subscriptions.push(vscode.lm.registerTool(tool.toolName, tool));
